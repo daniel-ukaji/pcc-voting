@@ -196,11 +196,11 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen p-6">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         {/* Header */}
         <header className="flex items-center justify-between mb-6 flex-wrap gap-4">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-semibold">{stats?.election_name || 'PCC Election'}</h1>
+            <h1 className="text-2xl font-semibold">{stats?.election_name || 'PCC Election'}</h1>
             <span className="flex items-center gap-1.5 bg-destructive text-destructive-foreground text-xs font-medium px-2 py-1 rounded-full">
               <span className="h-1.5 w-1.5 bg-white rounded-full animate-pulse" />
               Live
@@ -235,7 +235,7 @@ export default function AdminPage() {
         <Card className={cn("mb-6", votingOpen ? "border-l-4 border-l-green-600" : "border-l-4 border-l-muted")}>
           <CardContent className="flex items-center justify-between py-4 flex-wrap gap-4">
             <div>
-              <span className="text-sm">Voting is <strong>{votingOpen ? 'OPEN' : 'CLOSED'}</strong></span>
+              <span className="text-base">Voting is <strong>{votingOpen ? 'OPEN' : 'CLOSED'}</strong></span>
               {lastUpdated && (
                 <p className="text-xs text-muted-foreground">
                   Last updated: {lastUpdated.toLocaleTimeString()}
@@ -261,16 +261,16 @@ export default function AdminPage() {
                 <Users className="h-4 w-4" />
                 <span className="text-xs">Registered</span>
               </div>
-              <div className="text-2xl font-semibold">{stats?.total_voters || 0}</div>
+              <div className="text-3xl font-semibold">{stats?.total_voters || 0}</div>
             </CardContent>
           </Card>
-          <Card className="bg-foreground text-background">
+          <Card style={{ backgroundColor: '#0F2A46' }} className="text-white">
             <CardContent className="pt-4">
-              <div className="flex items-center gap-2 opacity-70 mb-1">
+              <div className="flex items-center gap-2 opacity-80 mb-1">
                 <Vote className="h-4 w-4" />
                 <span className="text-xs">Voted</span>
               </div>
-              <div className="text-2xl font-semibold">{stats?.votes_cast || 0}</div>
+              <div className="text-3xl font-semibold">{stats?.votes_cast || 0}</div>
             </CardContent>
           </Card>
           <Card>
@@ -279,7 +279,7 @@ export default function AdminPage() {
                 <Percent className="h-4 w-4" />
                 <span className="text-xs">Turnout</span>
               </div>
-              <div className="text-2xl font-semibold">{stats?.participation_rate || 0}%</div>
+              <div className="text-3xl font-semibold">{stats?.participation_rate || 0}%</div>
             </CardContent>
           </Card>
           <Card>
@@ -288,7 +288,7 @@ export default function AdminPage() {
                 <CheckSquare className="h-4 w-4" />
                 <span className="text-xs">Selections</span>
               </div>
-              <div className="text-2xl font-semibold">{totalSelections}</div>
+              <div className="text-3xl font-semibold">{totalSelections}</div>
             </CardContent>
           </Card>
         </div>
@@ -296,7 +296,7 @@ export default function AdminPage() {
         {/* PCC Results */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="text-base">PCC Members Results</CardTitle>
+            <CardTitle className="text-lg">PCC Members Results</CardTitle>
             <CardDescription>
               Top {stats?.max_selections || 9} candidates will be elected
             </CardDescription>
@@ -316,32 +316,32 @@ export default function AdminPage() {
                   <div
                     key={candidate.candidate_id}
                     className={cn(
-                      "flex items-center gap-3 p-3 rounded-md",
+                      "flex items-center gap-3 p-4 rounded-md",
                       isWinning ? "bg-green-50" : "bg-muted"
                     )}
                   >
                     <div className={cn(
-                      "h-6 w-6 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0",
+                      "h-7 w-7 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0",
                       isWinning ? "bg-green-600 text-white" : "bg-background border"
                     )}>
                       {index + 1}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline justify-between mb-1 flex-wrap gap-1">
-                        <span className="text-sm font-medium truncate">
+                      <div className="flex items-baseline justify-between mb-1.5 flex-wrap gap-1">
+                        <span className="text-base font-medium truncate">
                           {candidate.candidate_name}
                         </span>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-sm text-muted-foreground">
                           {voteCount} vote{voteCount !== 1 ? 's' : ''}
                         </span>
                       </div>
                       <Progress
                         value={percentage}
-                        className={cn("h-1.5", isWinning && "[&>div]:bg-green-600")}
+                        className={cn("h-2", isWinning && "[&>div]:bg-green-600")}
                       />
                     </div>
                     {isWinning && (
-                      <span className="text-[10px] font-medium uppercase bg-green-600 text-white px-2 py-0.5 rounded-full flex-shrink-0">
+                      <span className="text-xs font-medium uppercase bg-green-600 text-white px-2.5 py-1 rounded-full flex-shrink-0">
                         Elected
                       </span>
                     )}
@@ -356,7 +356,7 @@ export default function AdminPage() {
         {wardenResults.length > 0 && (
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle className="text-base">People's Warden Results</CardTitle>
+              <CardTitle className="text-lg">People's Warden Results</CardTitle>
               <CardDescription>
                 Top {stats?.max_warden_selections || 1} candidate will be elected
               </CardDescription>
@@ -371,32 +371,32 @@ export default function AdminPage() {
                   <div
                     key={candidate.candidate_id}
                     className={cn(
-                      "flex items-center gap-3 p-3 rounded-md",
+                      "flex items-center gap-3 p-4 rounded-md",
                       isWinning ? "bg-green-50" : "bg-muted"
                     )}
                   >
                     <div className={cn(
-                      "h-6 w-6 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0",
+                      "h-7 w-7 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0",
                       isWinning ? "bg-green-600 text-white" : "bg-background border"
                     )}>
                       {index + 1}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline justify-between mb-1 flex-wrap gap-1">
-                        <span className="text-sm font-medium truncate">
+                      <div className="flex items-baseline justify-between mb-1.5 flex-wrap gap-1">
+                        <span className="text-base font-medium truncate">
                           {candidate.candidate_name}
                         </span>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-sm text-muted-foreground">
                           {voteCount} vote{voteCount !== 1 ? 's' : ''}
                         </span>
                       </div>
                       <Progress
                         value={percentage}
-                        className={cn("h-1.5", isWinning && "[&>div]:bg-green-600")}
+                        className={cn("h-2", isWinning && "[&>div]:bg-green-600")}
                       />
                     </div>
                     {isWinning && (
-                      <span className="text-[10px] font-medium uppercase bg-green-600 text-white px-2 py-0.5 rounded-full flex-shrink-0">
+                      <span className="text-xs font-medium uppercase bg-green-600 text-white px-2.5 py-1 rounded-full flex-shrink-0">
                         Elected
                       </span>
                     )}
@@ -407,7 +407,7 @@ export default function AdminPage() {
           </Card>
         )}
 
-        <p className="text-center text-xs text-muted-foreground">
+        <p className="text-center text-sm text-muted-foreground">
           Results update automatically in real-time
         </p>
       </div>
