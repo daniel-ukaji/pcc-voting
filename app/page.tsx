@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Cross, Loader2, RefreshCw } from 'lucide-react'
+import Image from 'next/image'
 
 interface ElectionStats {
   total_voters: number
@@ -144,7 +145,15 @@ export default function HomePage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 text-muted-foreground">
-            <Cross className="h-8 w-8" />
+            <div className="mx-auto mb-1">
+  <Image 
+    src="/logo_.png" 
+    alt="Church of Redemption, Lekki" 
+    width={80} 
+    height={80}
+    priority
+  />
+</div>
           </div>
           <CardTitle className="text-2xl">
             {electionInfo?.election_name || 'PCC Election'}
