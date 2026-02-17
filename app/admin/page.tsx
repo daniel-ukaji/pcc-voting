@@ -13,6 +13,7 @@ interface CandidateResult {
   candidate_id: string
   candidate_name: string
   vote_count: number
+  election_type: string
 }
 
 interface ElectionStats {
@@ -22,6 +23,7 @@ interface ElectionStats {
   is_voting_open: boolean
   election_name: string
   max_selections: number
+  max_warden_selections: number
 }
 
 export default function AdminPage() {
@@ -37,6 +39,10 @@ export default function AdminPage() {
   const [connectionError, setConnectionError] = useState(false)
 
   const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'pcc2024'
+
+  // Filter results by election type
+  const pccResults = results.filter(r => r.election_type === 'pcc')
+  const wardenResults = results.filter(r => r.election_type === 'warden')
 
   useEffect(() => {
     const isAuth = sessionStorage.getItem('adminAuth') === 'true'
@@ -76,6 +82,7 @@ export default function AdminPage() {
       const { data: resultsData, error: resultsError } = await supabase.rpc('get_results')
       
       if (resultsError) {
+        console.error('Results error:', resultsError)
         setConnectionError(true)
       } else if (resultsData) {
         setResults(resultsData)
@@ -84,6 +91,7 @@ export default function AdminPage() {
       const { data: statsData, error: statsError } = await supabase.rpc('get_election_stats')
       
       if (statsError) {
+        console.error('Stats error:', statsError)
         setConnectionError(true)
       } else if (statsData) {
         setStats(statsData)
@@ -92,6 +100,7 @@ export default function AdminPage() {
       
       setLastUpdated(new Date())
     } catch (err) {
+      console.error('Fetch error:', err)
       setConnectionError(true)
     }
 
@@ -143,9 +152,12 @@ export default function AdminPage() {
     setPassword('')
   }
 
-  const maxVotes = results.length > 0 ? Math.max(...results.map(r => Number(r.vote_count))) : 0
+  // Calculate max votes for progress bars
+  const maxPCCVotes = pccResults.length > 0 ? Math.max(...pccResults.map(r => Number(r.vote_count))) : 0
+  const maxWardenVotes = wardenResults.length > 0 ? Math.max(...wardenResults.map(r => Number(r.vote_count))) : 0
   const totalSelections = results.reduce((sum, r) => sum + Number(r.vote_count), 0)
 
+  // Login screen
   if (!authenticated) {
     return (
       <main className="min-h-screen flex items-center justify-center p-6">
@@ -172,6 +184,7 @@ export default function AdminPage() {
     )
   }
 
+  // Loading screen
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
@@ -184,6 +197,7 @@ export default function AdminPage() {
   return (
     <main className="min-h-screen p-6">
       <div className="max-w-3xl mx-auto">
+        {/* Header */}
         <header className="flex items-center justify-between mb-6 flex-wrap gap-4">
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-semibold">{stats?.election_name || 'PCC Election'}</h1>
@@ -193,11 +207,16 @@ export default function AdminPage() {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={fetchData}><RefreshCw className="h-4 w-4" /></Button>
-            <Button variant="outline" size="sm" onClick={handleLogout}>Logout</Button>
+            <Button variant="outline" size="sm" onClick={fetchData}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleLogout}>
+              Logout
+            </Button>
           </div>
         </header>
 
+        {/* Connection Error */}
         {connectionError && (
           <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800 flex items-center gap-2">
             <AlertCircle className="h-4 w-4" />
@@ -205,50 +224,127 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* Error */}
+        {error && (
+          <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md text-sm text-destructive">
+            {error}
+          </div>
+        )}
+
+        {/* Voting Status */}
         <Card className={cn("mb-6", votingOpen ? "border-l-4 border-l-green-600" : "border-l-4 border-l-muted")}>
           <CardContent className="flex items-center justify-between py-4 flex-wrap gap-4">
             <div>
               <span className="text-sm">Voting is <strong>{votingOpen ? 'OPEN' : 'CLOSED'}</strong></span>
-              {lastUpdated && <p className="text-xs text-muted-foreground">Last updated: {lastUpdated.toLocaleTimeString()}</p>}
+              {lastUpdated && (
+                <p className="text-xs text-muted-foreground">
+                  Last updated: {lastUpdated.toLocaleTimeString()}
+                </p>
+              )}
             </div>
-            <Button size="sm" variant={votingOpen ? "destructive" : "default"} onClick={toggleVoting} disabled={updating}>
+            <Button
+              size="sm"
+              variant={votingOpen ? "destructive" : "default"}
+              onClick={toggleVoting}
+              disabled={updating}
+            >
               {updating ? <Loader2 className="h-4 w-4 animate-spin" /> : votingOpen ? 'Close Voting' : 'Open Voting'}
             </Button>
           </CardContent>
         </Card>
 
+        {/* Stats Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-          <Card><CardContent className="pt-4"><div className="flex items-center gap-2 text-muted-foreground mb-1"><Users className="h-4 w-4" /><span className="text-xs">Registered</span></div><div className="text-2xl font-semibold">{stats?.total_voters || 0}</div></CardContent></Card>
-          <Card className="bg-foreground text-background"><CardContent className="pt-4"><div className="flex items-center gap-2 opacity-70 mb-1"><Vote className="h-4 w-4" /><span className="text-xs">Voted</span></div><div className="text-2xl font-semibold">{stats?.votes_cast || 0}</div></CardContent></Card>
-          <Card><CardContent className="pt-4"><div className="flex items-center gap-2 text-muted-foreground mb-1"><Percent className="h-4 w-4" /><span className="text-xs">Turnout</span></div><div className="text-2xl font-semibold">{stats?.participation_rate || 0}%</div></CardContent></Card>
-          <Card><CardContent className="pt-4"><div className="flex items-center gap-2 text-muted-foreground mb-1"><CheckSquare className="h-4 w-4" /><span className="text-xs">Selections</span></div><div className="text-2xl font-semibold">{totalSelections}</div></CardContent></Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <Users className="h-4 w-4" />
+                <span className="text-xs">Registered</span>
+              </div>
+              <div className="text-2xl font-semibold">{stats?.total_voters || 0}</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-foreground text-background">
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 opacity-70 mb-1">
+                <Vote className="h-4 w-4" />
+                <span className="text-xs">Voted</span>
+              </div>
+              <div className="text-2xl font-semibold">{stats?.votes_cast || 0}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <Percent className="h-4 w-4" />
+                <span className="text-xs">Turnout</span>
+              </div>
+              <div className="text-2xl font-semibold">{stats?.participation_rate || 0}%</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <CheckSquare className="h-4 w-4" />
+                <span className="text-xs">Selections</span>
+              </div>
+              <div className="text-2xl font-semibold">{totalSelections}</div>
+            </CardContent>
+          </Card>
         </div>
 
-        <Card>
+        {/* PCC Results */}
+        <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="text-base">Results</CardTitle>
-            <CardDescription>Top {stats?.max_selections || 9} candidates will be elected</CardDescription>
+            <CardTitle className="text-base">PCC Members Results</CardTitle>
+            <CardDescription>
+              Top {stats?.max_selections || 9} candidates will be elected
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {results.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">No candidates found.</p>
+            {pccResults.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                No PCC candidates found.
+              </p>
             ) : (
-              results.map((candidate, index) => {
+              pccResults.map((candidate, index) => {
                 const voteCount = Number(candidate.vote_count)
-                const percentage = maxVotes > 0 ? (voteCount / maxVotes) * 100 : 0
+                const percentage = maxPCCVotes > 0 ? (voteCount / maxPCCVotes) * 100 : 0
                 const isWinning = index < (stats?.max_selections || 9) && voteCount > 0
 
                 return (
-                  <div key={candidate.candidate_id} className={cn("flex items-center gap-3 p-3 rounded-md", isWinning ? "bg-green-50" : "bg-muted")}>
-                    <div className={cn("h-6 w-6 rounded-full flex items-center justify-center text-xs font-medium", isWinning ? "bg-green-600 text-white" : "bg-background border")}>{index + 1}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline justify-between mb-1">
-                        <span className="text-sm font-medium truncate">{candidate.candidate_name}</span>
-                        <span className="text-xs text-muted-foreground">{voteCount} vote{voteCount !== 1 ? 's' : ''}</span>
-                      </div>
-                      <Progress value={percentage} className={cn("h-1.5", isWinning && "[&>div]:bg-green-600")} />
+                  <div
+                    key={candidate.candidate_id}
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-md",
+                      isWinning ? "bg-green-50" : "bg-muted"
+                    )}
+                  >
+                    <div className={cn(
+                      "h-6 w-6 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0",
+                      isWinning ? "bg-green-600 text-white" : "bg-background border"
+                    )}>
+                      {index + 1}
                     </div>
-                    {isWinning && <span className="text-[10px] font-medium uppercase bg-green-600 text-white px-2 py-0.5 rounded-full">Elected</span>}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline justify-between mb-1 flex-wrap gap-1">
+                        <span className="text-sm font-medium truncate">
+                          {candidate.candidate_name}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {voteCount} vote{voteCount !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      <Progress
+                        value={percentage}
+                        className={cn("h-1.5", isWinning && "[&>div]:bg-green-600")}
+                      />
+                    </div>
+                    {isWinning && (
+                      <span className="text-[10px] font-medium uppercase bg-green-600 text-white px-2 py-0.5 rounded-full flex-shrink-0">
+                        Elected
+                      </span>
+                    )}
                   </div>
                 )
               })
@@ -256,7 +352,64 @@ export default function AdminPage() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-xs text-muted-foreground mt-6">Results update automatically</p>
+        {/* People's Warden Results */}
+        {wardenResults.length > 0 && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="text-base">People's Warden Results</CardTitle>
+              <CardDescription>
+                Top {stats?.max_warden_selections || 1} candidate will be elected
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {wardenResults.map((candidate, index) => {
+                const voteCount = Number(candidate.vote_count)
+                const percentage = maxWardenVotes > 0 ? (voteCount / maxWardenVotes) * 100 : 0
+                const isWinning = index < (stats?.max_warden_selections || 1) && voteCount > 0
+
+                return (
+                  <div
+                    key={candidate.candidate_id}
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-md",
+                      isWinning ? "bg-green-50" : "bg-muted"
+                    )}
+                  >
+                    <div className={cn(
+                      "h-6 w-6 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0",
+                      isWinning ? "bg-green-600 text-white" : "bg-background border"
+                    )}>
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline justify-between mb-1 flex-wrap gap-1">
+                        <span className="text-sm font-medium truncate">
+                          {candidate.candidate_name}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {voteCount} vote{voteCount !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      <Progress
+                        value={percentage}
+                        className={cn("h-1.5", isWinning && "[&>div]:bg-green-600")}
+                      />
+                    </div>
+                    {isWinning && (
+                      <span className="text-[10px] font-medium uppercase bg-green-600 text-white px-2 py-0.5 rounded-full flex-shrink-0">
+                        Elected
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
+            </CardContent>
+          </Card>
+        )}
+
+        <p className="text-center text-xs text-muted-foreground">
+          Results update automatically in real-time
+        </p>
       </div>
     </main>
   )

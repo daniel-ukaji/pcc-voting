@@ -19,17 +19,20 @@ interface Candidate {
   id: string
   name: string
   bio?: string
+  election_type: string
 }
 
 interface ElectionStats {
   max_selections: number
+  max_warden_selections: number
   election_name: string
   is_voting_open: boolean
 }
 
 export default function VotePage() {
   const [candidates, setCandidates] = useState<Candidate[]>([])
-  const [selectedCandidates, setSelectedCandidates] = useState<string[]>([])
+  const [selectedPCC, setSelectedPCC] = useState<string[]>([])
+  const [selectedWarden, setSelectedWarden] = useState<string | null>(null)
   const [electionInfo, setElectionInfo] = useState<ElectionStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -39,7 +42,11 @@ export default function VotePage() {
   const router = useRouter()
 
   const voterPhone = typeof window !== 'undefined' ? sessionStorage.getItem('voterPhone') : null
-  const maxSelections = electionInfo?.max_selections || 9
+  const maxPCCSelections = electionInfo?.max_selections || 9
+  const maxWardenSelections = electionInfo?.max_warden_selections || 1
+
+  const pccCandidates = candidates.filter(c => c.election_type === 'pcc')
+  const wardenCandidates = candidates.filter(c => c.election_type === 'warden')
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -105,20 +112,25 @@ export default function VotePage() {
     setLoading(false)
   }
 
-  function toggleCandidate(candidateId: string) {
+  function togglePCCCandidate(candidateId: string) {
     if (submitting) return
     
-    setSelectedCandidates(prev => {
+    setSelectedPCC(prev => {
       if (prev.includes(candidateId)) {
         return prev.filter(id => id !== candidateId)
-      } else if (prev.length < maxSelections) {
+      } else if (prev.length < maxPCCSelections) {
         return [...prev, candidateId]
       } else {
-        setError(`You can only select up to ${maxSelections} candidates. Deselect one to choose another.`)
+        setError(`You can only select up to ${maxPCCSelections} PCC candidates.`)
         setTimeout(() => setError(''), 4000)
         return prev
       }
     })
+  }
+
+  function selectWardenCandidate(candidateId: string) {
+    if (submitting) return
+    setSelectedWarden(prev => prev === candidateId ? null : candidateId)
   }
 
   async function handleSubmitVote() {
@@ -152,7 +164,8 @@ export default function VotePage() {
 
       const { data, error: voteError } = await supabase.rpc('cast_vote', {
         p_phone_number: voterPhone,
-        p_candidate_ids: selectedCandidates
+        p_candidate_ids: selectedPCC,
+        p_warden_candidate_id: selectedWarden
       })
 
       if (voteError) {
@@ -183,6 +196,8 @@ export default function VotePage() {
     router.push('/')
   }
 
+  const canSubmit = selectedPCC.length > 0 && (wardenCandidates.length === 0 || selectedWarden !== null)
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
@@ -208,26 +223,13 @@ export default function VotePage() {
               {electionInfo?.election_name || 'PCC Election'}
             </h1>
           </div>
-          <div className="flex items-baseline gap-1 bg-muted px-3 py-1.5 rounded-md text-sm">
-            <span className={cn(
-              "text-lg font-semibold",
-              selectedCandidates.length === maxSelections && "text-green-600"
-            )}>
-              {selectedCandidates.length}
-            </span>
-            <span className="text-muted-foreground">/ {maxSelections}</span>
-          </div>
         </header>
 
         {voterName && (
-          <p className="text-sm text-muted-foreground mb-2">
+          <p className="text-sm text-muted-foreground mb-4">
             Voting as: <strong>{voterName}</strong>
           </p>
         )}
-
-        <p className="text-sm text-muted-foreground mb-6">
-          Select up to <strong>{maxSelections}</strong> candidates. Tap to select or deselect.
-        </p>
 
         {error && (
           <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md text-sm text-destructive flex items-start gap-2">
@@ -236,41 +238,117 @@ export default function VotePage() {
           </div>
         )}
 
-        <div className="space-y-2">
-          {candidates.map(candidate => (
-            <button
-              key={candidate.id}
-              onClick={() => toggleCandidate(candidate.id)}
-              disabled={submitting}
-              className={cn(
-                "w-full flex items-center gap-3 p-3 rounded-md border text-left transition-colors",
-                "disabled:opacity-50 disabled:cursor-not-allowed",
-                selectedCandidates.includes(candidate.id)
-                  ? "border-foreground bg-muted"
-                  : "border-border hover:bg-accent"
-              )}
-            >
-              <div className={cn(
-                "h-5 w-5 rounded border flex items-center justify-center flex-shrink-0 transition-colors",
-                selectedCandidates.includes(candidate.id)
-                  ? "bg-foreground border-foreground"
-                  : "border-border"
+        {/* PCC Election Section */}
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold">PCC Members</h2>
+            <div className="flex items-baseline gap-1 bg-muted px-3 py-1.5 rounded-md text-sm">
+              <span className={cn(
+                "text-lg font-semibold",
+                selectedPCC.length === maxPCCSelections && "text-green-600"
               )}>
-                {selectedCandidates.includes(candidate.id) && (
-                  <Check className="h-3.5 w-3.5 text-background" />
+                {selectedPCC.length}
+              </span>
+              <span className="text-muted-foreground">/ {maxPCCSelections}</span>
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Select up to <strong>{maxPCCSelections}</strong> candidates for PCC.
+          </p>
+
+          <div className="space-y-2">
+            {pccCandidates.map(candidate => (
+              <button
+                key={candidate.id}
+                onClick={() => togglePCCCandidate(candidate.id)}
+                disabled={submitting}
+                className={cn(
+                  "w-full flex items-center gap-3 p-3 rounded-md border text-left transition-colors",
+                  "disabled:opacity-50 disabled:cursor-not-allowed",
+                  selectedPCC.includes(candidate.id)
+                    ? "border-foreground bg-muted"
+                    : "border-border hover:bg-accent"
                 )}
+              >
+                <div className={cn(
+                  "h-5 w-5 rounded border flex items-center justify-center flex-shrink-0 transition-colors",
+                  selectedPCC.includes(candidate.id)
+                    ? "bg-foreground border-foreground"
+                    : "border-border"
+                )}>
+                  {selectedPCC.includes(candidate.id) && (
+                    <Check className="h-3.5 w-3.5 text-background" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-medium">{candidate.name}</span>
+                  {candidate.bio && (
+                    <span className="block text-xs text-muted-foreground mt-0.5">
+                      {candidate.bio}
+                    </span>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* People's Warden Section */}
+        {wardenCandidates.length > 0 && (
+          <section className="mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold">People's Warden</h2>
+              <div className="flex items-baseline gap-1 bg-muted px-3 py-1.5 rounded-md text-sm">
+                <span className={cn(
+                  "text-lg font-semibold",
+                  selectedWarden && "text-green-600"
+                )}>
+                  {selectedWarden ? 1 : 0}
+                </span>
+                <span className="text-muted-foreground">/ {maxWardenSelections}</span>
               </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-sm font-medium">{candidate.name}</span>
-                {candidate.bio && (
-                  <span className="block text-xs text-muted-foreground mt-0.5">
-                    {candidate.bio}
-                  </span>
-                )}
-              </div>
-            </button>
-          ))}
-        </div>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Select <strong>1</strong> candidate for People's Warden.
+            </p>
+
+            <div className="space-y-2">
+              {wardenCandidates.map(candidate => (
+                <button
+                  key={candidate.id}
+                  onClick={() => selectWardenCandidate(candidate.id)}
+                  disabled={submitting}
+                  className={cn(
+                    "w-full flex items-center gap-3 p-3 rounded-md border text-left transition-colors",
+                    "disabled:opacity-50 disabled:cursor-not-allowed",
+                    selectedWarden === candidate.id
+                      ? "border-foreground bg-muted"
+                      : "border-border hover:bg-accent"
+                  )}
+                >
+                  <div className={cn(
+                    "h-5 w-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-colors",
+                    selectedWarden === candidate.id
+                      ? "bg-foreground border-foreground"
+                      : "border-border"
+                  )}>
+                    {selectedWarden === candidate.id && (
+                      <div className="h-2 w-2 rounded-full bg-background" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium">{candidate.name}</span>
+                    {candidate.bio && (
+                      <span className="block text-xs text-muted-foreground mt-0.5">
+                        {candidate.bio}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t">
@@ -279,34 +357,54 @@ export default function VotePage() {
             className="w-full"
             size="lg"
             onClick={() => setShowConfirm(true)}
-            disabled={selectedCandidates.length === 0 || submitting || !electionInfo?.is_voting_open}
+            disabled={!canSubmit || submitting || !electionInfo?.is_voting_open}
           >
-            {selectedCandidates.length === 0 
-              ? 'Select at least 1 candidate' 
-              : `Review & Submit (${selectedCandidates.length} selected)`}
+            {!canSubmit
+              ? wardenCandidates.length > 0 
+                ? 'Select PCC candidates and Warden'
+                : 'Select at least 1 candidate'
+              : `Review & Submit Vote`}
           </Button>
         </div>
       </div>
 
       <Dialog open={showConfirm} onOpenChange={(open) => !submitting && setShowConfirm(open)}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Confirm Your Vote</DialogTitle>
             <DialogDescription>
-              You are voting for {selectedCandidates.length} candidate{selectedCandidates.length !== 1 ? 's' : ''}:
+              Please review your selections:
             </DialogDescription>
           </DialogHeader>
 
-          <div className="my-4 p-3 bg-muted rounded-md max-h-60 overflow-y-auto">
-            {selectedCandidates.map((id, index) => {
-              const candidate = candidates.find(c => c.id === id)
-              return (
-                <div key={id} className="text-sm font-medium py-2 border-b border-border last:border-0 flex items-center gap-2">
-                  <span className="text-muted-foreground">{index + 1}.</span>
-                  {candidate?.name}
+          <div className="space-y-4">
+            {/* PCC Selections */}
+            <div>
+              <h3 className="text-sm font-semibold mb-2">PCC Members ({selectedPCC.length})</h3>
+              <div className="p-3 bg-muted rounded-md max-h-40 overflow-y-auto">
+                {selectedPCC.map((id, index) => {
+                  const candidate = candidates.find(c => c.id === id)
+                  return (
+                    <div key={id} className="text-sm font-medium py-1.5 border-b border-border last:border-0 flex items-center gap-2">
+                      <span className="text-muted-foreground">{index + 1}.</span>
+                      {candidate?.name}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Warden Selection */}
+            {selectedWarden && (
+              <div>
+                <h3 className="text-sm font-semibold mb-2">People's Warden</h3>
+                <div className="p-3 bg-muted rounded-md">
+                  <div className="text-sm font-medium">
+                    {candidates.find(c => c.id === selectedWarden)?.name}
+                  </div>
                 </div>
-              )
-            })}
+              </div>
+            )}
           </div>
 
           <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">

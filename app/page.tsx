@@ -146,14 +146,14 @@ export default function HomePage() {
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 text-muted-foreground">
             <div className="mx-auto mb-1">
-  <Image 
-    src="/logo_.png" 
-    alt="Church of Redemption, Lekki" 
-    width={80} 
-    height={80}
-    priority
-  />
-</div>
+              <Image 
+                src="/logo_.png" 
+                alt="Church of Redemption, Lekki" 
+                width={80} 
+                height={80}
+                priority
+              /> 
+            </div>
           </div>
           <CardTitle className="text-2xl">
             {electionInfo?.election_name || 'PCC Election'}
