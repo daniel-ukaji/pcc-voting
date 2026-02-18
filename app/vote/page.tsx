@@ -15,6 +15,8 @@ import {
 import { Check, Loader2, AlertCircle, ArrowLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+export const dynamic = 'force-dynamic'
+
 interface Candidate {
   id: string
   name: string

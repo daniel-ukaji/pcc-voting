@@ -10,6 +10,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Cross, Loader2, RefreshCw } from 'lucide-react'
 import Image from 'next/image'
 
+export const dynamic = 'force-dynamic'
+
+
 interface ElectionStats {
   total_voters: number
   votes_cast: number

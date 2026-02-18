@@ -5,6 +5,9 @@ import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle2, Cross, Loader2 } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
+
 interface ElectionStats {
   votes_cast: number
   participation_rate: number

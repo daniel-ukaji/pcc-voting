@@ -8,6 +8,9 @@ import { Progress } from '@/components/ui/progress'
 import { Loader2, Users, Vote, Trophy } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+export const dynamic = 'force-dynamic'
+
+
 interface CandidateResult {
   candidate_id: string
   candidate_name: string
